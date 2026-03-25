@@ -1,0 +1,43 @@
+name: release
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: release ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            build-tool: cargo
+          - target: x86_64-unknown-linux-musl
+            build-tool: cross
+          - target: x86_64-pc-windows-gnu
+            build-tool: cargo-zigbuild
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - if: ${{ matrix.build-tool == 'cargo-zigbuild' }}
+        name: Set up Zig
+        uses: mlugg/setup-zig@v2
+
+      - if: ${{ matrix.build-tool != 'cargo' }}
+        name: Install ${{ matrix.build-tool }}
+        uses: taiki-e/install-action@v2
+        with:
+          tool: ${{ matrix.build-tool }}
+
+      - name: Compile and release
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: git-credential-store-regex
+          target: ${{ matrix.target }}
+          build-tool: ${{ matrix.build-tool }}
+          token: ${{ secrets.GITHUB_TOKEN }}
