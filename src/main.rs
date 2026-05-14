@@ -6,10 +6,12 @@ use gitcredential::GitCredential;
 use regex::Regex;
 use serde::Deserialize;
 use serde_with::{BorrowCow, DeserializeAs};
-use snafu::{OptionExt, ResultExt, Snafu};
+use snafu::{ResultExt, Snafu};
 use std::{
     borrow::Cow,
-    env, fs, io,
+    env,
+    fs::File,
+    io::{self, Read},
     path::{Path, PathBuf},
 };
 
@@ -38,8 +40,8 @@ enum Error {
     ParseCredential { source: gitcredential::FromReaderError },
     #[snafu(display("Failed to write credential to stdout"))]
     WriteCredential { source: io::Error },
-    #[snafu(display("Failed to locate the .git-credentials.json file"))]
-    LocateCredentials,
+    #[snafu(display("Failed to open the credentials file"))]
+    OpenCredentials { source: io::Error },
     #[snafu(display("Failed to read credentials from {}", path.display()))]
     ReadCredentials { source: io::Error, path: PathBuf },
     #[snafu(display("Failed to parse from {}", path.display()))]
@@ -57,13 +59,14 @@ fn main() -> Result<(), Error> {
 
 fn command_get() -> Result<(), Error> {
     let gc = GitCredential::from_reader(io::stdin()).context(ParseCredentialCtx)?;
-    let path = &locate_credentials()?;
-    let content = match fs::read_to_string(path) {
-        Ok(v) => v,
-        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
-        e => e.context(ReadCredentialsCtx { path })?,
+    let (mut file, path) = match open_credentials().context(OpenCredentialsCtx)? {
+        Some(v) => v,
+        None => return Ok(()),
     };
-    parse_credentials(&content, path)?
+    let mut content = String::new();
+    file.read_to_string(&mut content)
+        .context(ReadCredentialsCtx { path: &path })?;
+    parse_credentials(&content, &path)?
         .into_iter()
         .find(|entry| is_match(&gc, entry))
         .map(|entry| GitCredential {
@@ -76,13 +79,24 @@ fn command_get() -> Result<(), Error> {
         .map_or_else(|| Ok(()), |gc| gc.to_writer(io::stdout()).context(WriteCredentialCtx))
 }
 
-fn locate_credentials() -> Result<PathBuf, Error> {
-    match env::var_os("GIT_CREDENTIALS").filter(|s| !s.is_empty()) {
-        Some(path) => Ok(path.into()),
-        None => env::home_dir()
-            .map(|home| home.join(".git-credentials.json"))
-            .context(LocateCredentialsCtx),
-    }
+fn open_credentials() -> Result<Option<(File, PathBuf)>, io::Error> {
+    [
+        || {
+            env::var_os("GIT_CREDENTIALS")
+                .filter(|s| !s.is_empty())
+                .map(PathBuf::from)
+        },
+        || dirs::config_dir().map(|p| p.join("git").join("credentials.json")),
+        || dirs::home_dir().map(|p| p.join(".git-credentials.json")),
+    ]
+    .into_iter()
+    .filter_map(|f| f())
+    .find_map(|path| match File::open(&path) {
+        Ok(file) => Some(Ok((file, path))),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => None,
+        Err(e) => Some(Err(e)),
+    })
+    .transpose()
 }
 
 fn parse_credentials<'a>(input: &'a str, path: &Path) -> Result<Vec<Entry<'a>>, Error> {
