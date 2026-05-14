@@ -79,18 +79,26 @@ fn command_get(file: Option<PathBuf>) -> Result<(), Error> {
 }
 
 fn open_credentials(file: Option<PathBuf>) -> Result<Option<(File, PathBuf)>, io::Error> {
-    use std::iter::{once, once_with};
-    once(file)
-        .chain(once_with(|| env::var_os("GIT_CREDENTIALS").filter(|s| !s.is_empty()).map(PathBuf::from)))
-        .chain(once_with(|| dirs::config_dir().map(|p| p.join("git").join("credentials.json"))))
-        .chain(once_with(|| dirs::home_dir().map(|p| p.join(".git-credentials.json"))))
-        .flatten()
-        .find_map(|path| match File::open(&path) {
-            Ok(file) => Some(Ok((file, path))),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => None,
-            Err(e) => Some(Err(e)),
-        })
-        .transpose()
+    macro_rules! try_open {
+        ($($source:expr),*) => {
+            $(
+                if let Some(path) = $source {
+                    match File::open(&path) {
+                        Ok(file) => return Ok(Some((file, path))),
+                        Err(e) if e.kind() == io::ErrorKind::NotFound => (),
+                        Err(e) => return Err(e),
+                    }
+                }
+            )*
+            return Ok(None);
+        };
+    }
+    try_open!(
+        file,
+        env::var_os("GIT_CREDENTIALS").filter(|s| !s.is_empty()).map(PathBuf::from),
+        dirs::config_dir().map(|p| p.join("git").join("credentials.json")),
+        dirs::home_dir().map(|p| p.join(".git-credentials.json"))
+    );
 }
 
 fn parse_credentials<'a>(input: &'a str, path: &Path) -> Result<Vec<Entry<'a>>, Error> {
