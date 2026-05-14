@@ -75,8 +75,8 @@ fn command_get(file: Option<PathBuf>) -> Result<(), Error> {
             protocol: gc.protocol.clone(),
             host: gc.host.clone(),
             path: gc.path.clone(),
-            username: Some(entry.credentials.username.to_owned()),
-            password: Some(entry.credentials.password.to_owned()),
+            username: Some(entry.credentials.username.into_owned()),
+            password: Some(entry.credentials.password.into_owned()),
         })
         .map_or_else(|| Ok(()), |gc| gc.to_writer(io::stdout()).context(WriteCredentialCtx))
 }
@@ -146,8 +146,8 @@ struct Pattern {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Credentials<'a> {
-    username: &'a str,
-    password: &'a str,
+    username: Cow<'a, str>,
+    password: Cow<'a, str>,
 }
 
 struct RegexSerde;
