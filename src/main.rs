@@ -26,7 +26,10 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Return a matching credential, if any exists.
-    Get { file: Option<PathBuf> },
+    Get {
+        #[arg(long)]
+        file: Option<PathBuf>,
+    },
     /// Store the credential.
     Store,
     /// Remove matching credentials, if any, from the storage.
