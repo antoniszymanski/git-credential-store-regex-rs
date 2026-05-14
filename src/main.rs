@@ -72,9 +72,9 @@ fn command_get(file: Option<PathBuf>) -> Result<(), Error> {
         .into_iter()
         .find(|entry| is_match(&gc, entry))
         .map(|entry| GitCredential {
-            protocol: gc.protocol.clone(),
-            host: gc.host.clone(),
-            path: gc.path.clone(),
+            protocol: gc.protocol,
+            host: gc.host,
+            path: gc.path,
             username: Some(entry.credentials.username.into_owned()),
             password: Some(entry.credentials.password.into_owned()),
         })
