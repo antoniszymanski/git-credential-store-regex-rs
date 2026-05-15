@@ -82,18 +82,15 @@ fn command_get(file: Option<PathBuf>) -> Result<(), Error> {
 
 fn open_credentials(file: Option<PathBuf>) -> Result<Option<(File, PathBuf)>, io::Error> {
     macro_rules! try_open {
-        ($($source:expr),*) => {
-            $(
-                if let Some(path) = $source {
-                    match File::open(&path) {
-                        Ok(file) => return Ok(Some((file, path))),
-                        Err(e) if e.kind() == io::ErrorKind::NotFound => (),
-                        Err(e) => return Err(e),
-                    }
+        ($($source:expr),*) => {$(
+            if let Some(path) = $source {
+                match File::open(&path) {
+                    Ok(file) => return Ok(Some((file, path))),
+                    Err(e) if e.kind() == io::ErrorKind::NotFound => (),
+                    Err(e) => return Err(e),
                 }
-            )*
-            return Ok(None);
-        };
+            }
+        )*};
     }
     try_open!(
         file,
@@ -101,6 +98,7 @@ fn open_credentials(file: Option<PathBuf>) -> Result<Option<(File, PathBuf)>, io
         dirs::config_dir().map(|p| p.join("git").join("credentials.json")),
         dirs::home_dir().map(|p| p.join(".git-credentials.json"))
     );
+    Ok(None)
 }
 
 fn parse_credentials<'a>(input: &'a str, path: &Path) -> Result<Vec<Entry<'a>>, Error> {
@@ -115,7 +113,7 @@ fn is_match(gc: &GitCredential, entry: &Entry) -> bool {
             {
                 return false;
             }
-        )*}
+        )*};
     }
     match_fields!(protocol, host, path, username);
     true
