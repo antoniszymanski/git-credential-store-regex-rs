@@ -21,15 +21,14 @@ use std::{
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+    #[arg(long)]
+    file: Option<PathBuf>,
 }
 
 #[derive(Debug, Subcommand)]
 enum Commands {
     /// Return a matching credential, if any exists.
-    Get {
-        #[arg(long)]
-        file: Option<PathBuf>,
-    },
+    Get,
     /// Store the credential.
     Store,
     /// Remove matching credentials, if any, from the storage.
@@ -55,7 +54,7 @@ enum Error {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     match cli.command {
-        Commands::Get { file } => command_get(file),
+        Commands::Get => command_get(cli.file),
         Commands::Store | Commands::Erase => Ok(()),
     }
 }
