@@ -127,7 +127,7 @@ struct Entry<'a> {
     credentials: Credentials<'a>,
 }
 
-#[serde_with::apply(Option<Regex> => #[serde_as(as = "Option<RegexSerde>")])]
+#[serde_with::apply(Option<Regex> => #[serde_as(as = "Option<AnchoredRegex>")])]
 #[serde_with::serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -145,9 +145,9 @@ struct Credentials<'a> {
     password: Cow<'a, str>,
 }
 
-struct RegexSerde;
+struct AnchoredRegex;
 
-impl<'de> DeserializeAs<'de, Regex> for RegexSerde {
+impl<'de> DeserializeAs<'de, Regex> for AnchoredRegex {
     fn deserialize_as<D>(deserializer: D) -> Result<Regex, D::Error>
     where
         D: serde::Deserializer<'de>,
