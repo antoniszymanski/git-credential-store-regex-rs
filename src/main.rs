@@ -127,9 +127,7 @@ struct Entry<'a> {
     credentials: Credentials<'a>,
 }
 
-#[serde_with::apply(
-    Option<Regex> => #[serde_as(as = "Option<RegexSerde>")] #[serde(skip_serializing_if = "Option::is_none")]
-)]
+#[serde_with::apply(Option<Regex> => #[serde_as(as = "Option<RegexSerde>")])]
 #[serde_with::serde_as]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
