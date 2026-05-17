@@ -5,11 +5,11 @@ use clap::{Parser, Subcommand};
 use gitcredential::GitCredential;
 use regex::Regex;
 use serde::Deserialize;
-use serde_with::{BorrowCow, DeserializeAs};
+use serde_with::DeserializeAs;
 use snafu::{ResultExt, Snafu};
 use std::{
     borrow::Cow,
-    env,
+    env, fmt,
     fs::File,
     io::{self, Read},
     path::{Path, PathBuf},
@@ -152,8 +152,21 @@ impl<'de> DeserializeAs<'de, Regex> for RegexSerde {
     where
         D: serde::Deserializer<'de>,
     {
-        let pattern: Cow<str> = BorrowCow::deserialize_as(deserializer)?;
-        let anchored_pattern = format!("^(?:{pattern})$");
-        Regex::new(&anchored_pattern).map_err(serde::de::Error::custom)
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = Regex;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string")
+            }
+
+            fn visit_str<E: serde::de::Error>(self, pattern: &str) -> Result<Self::Value, E> {
+                let anchored_pattern = format!("^(?:{pattern})$");
+                Regex::new(&anchored_pattern).map_err(serde::de::Error::custom)
+            }
+        }
+
+        deserializer.deserialize_str(Visitor)
     }
 }
