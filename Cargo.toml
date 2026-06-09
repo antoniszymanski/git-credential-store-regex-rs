@@ -13,6 +13,7 @@ gitcredential = { version = "0.1.1", default-features = false }
 regex = "1.12.3"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+serde_path_to_error = "0.1.20"
 serde_with = "3.18.0"
 snafu = "0.9.0"
 

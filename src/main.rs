@@ -47,7 +47,7 @@ enum Error {
     #[snafu(display("Failed to read credentials from {}", path.display()))]
     ReadCredentials { source: io::Error, path: PathBuf },
     #[snafu(display("Failed to parse from {}", path.display()))]
-    ParseCredentials { source: serde_json::Error, path: PathBuf },
+    ParseCredentials { source: serde_path_to_error::Error<serde_json::Error>, path: PathBuf },
 }
 
 #[snafu::report]
@@ -102,7 +102,8 @@ fn open_credentials(file: Option<PathBuf>) -> Result<Option<(File, PathBuf)>, io
 }
 
 fn parse_credentials<'a>(input: &'a str, path: &Path) -> Result<Vec<Entry<'a>>, Error> {
-    serde_json::from_str(input).context(ParseCredentialsCtx { path })
+    let deserializer = &mut serde_json::Deserializer::from_str(input);
+    serde_path_to_error::deserialize(deserializer).context(ParseCredentialsCtx { path })
 }
 
 fn is_match(gc: &GitCredential, entry: &Entry) -> bool {
