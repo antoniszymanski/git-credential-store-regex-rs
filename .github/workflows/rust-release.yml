@@ -22,7 +22,7 @@ jobs:
             build-tool: cargo-zigbuild
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - if: ${{ matrix.build-tool == 'cargo-zigbuild' }}
         name: Set up Zig
