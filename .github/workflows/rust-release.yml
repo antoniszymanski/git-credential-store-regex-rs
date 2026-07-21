@@ -1,15 +1,70 @@
 name: release
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
+    inputs:
+      bump-type:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options: [major, minor, patch, auto]
+        default: auto
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    name: release ${{ matrix.target }}
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      ref: refs/tags/v${{ steps.version.outputs.output }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Batch changes
+        uses: miniscruff/changie-action@v3
+        with:
+          version: latest
+          args: batch ${{ inputs.bump-type }}
+
+      - name: Merge changes
+        run: changie merge
+
+      - name: Get the latest version
+        id: version
+        uses: miniscruff/changie-action@v3
+        with:
+          version: latest
+          args: latest --remove-prefix
+
+      - name: Install cargo-edit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-edit
+
+      - name: Set the version in Cargo.toml
+        run: cargo set-version ${{ steps.version.outputs.output }}
+
+      - name: Commit and push
+        uses: EndBug/add-and-commit@v10
+        with:
+          message: Release v${{ steps.version.outputs.output }}
+          default_author: user_info
+
+      - name: Publish
+        run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          changelog: CHANGELOG.md
+          ref: refs/tags/v${{ steps.version.outputs.output }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-assets:
+    needs: create-release
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -40,4 +95,5 @@ jobs:
           bin: git-credential-store-regex
           target: ${{ matrix.target }}
           build-tool: ${{ matrix.build-tool }}
+          ref: ${{ needs.create-release.outputs.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
