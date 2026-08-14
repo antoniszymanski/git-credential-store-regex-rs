@@ -61,9 +61,8 @@ fn main() -> Result<(), Error> {
 
 fn command_get(file: Option<PathBuf>) -> Result<(), Error> {
     let gc = GitCredential::from_reader(io::stdin()).context(ParseCredentialCtx)?;
-    let (mut file, path) = match open_credentials(file).context(OpenCredentialsCtx)? {
-        Some(v) => v,
-        None => return Ok(()),
+    let Some((mut file, path)) = open_credentials(file).context(OpenCredentialsCtx)? else {
+        return Ok(());
     };
     let mut content = String::new();
     file.read_to_string(&mut content).context(ReadCredentialsCtx { path: &path })?;
