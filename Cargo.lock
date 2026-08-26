@@ -428,7 +428,7 @@ dependencies = [
 
 [[package]]
 name = "git-credential-store-regex"
-version = "0.4.2"
+version = "1.0.0"
 dependencies = [
  "carapace_spec_clap",
  "clap",
