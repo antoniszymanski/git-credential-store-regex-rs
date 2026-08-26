@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 Antoni Szymański
 // SPDX-License-Identifier: MPL-2.0
 
-use clap::{Parser, Subcommand};
+use crate::cli::{Cli, Commands};
+use clap::Parser;
 use gitcredential::GitCredential;
 use regex::Regex;
 use serde::Deserialize;
@@ -15,25 +16,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Parser)]
-#[command(version, about, long_about = None)]
-#[command(propagate_version = true)]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-    #[arg(long)]
-    file: Option<PathBuf>,
-}
-
-#[derive(Debug, Subcommand)]
-enum Commands {
-    /// Return a matching credential, if any exists.
-    Get,
-    /// Store the credential.
-    Store,
-    /// Remove matching credentials, if any, from the storage.
-    Erase,
-}
+mod cli;
 
 #[derive(Debug, Snafu)]
 #[snafu(context(suffix(Ctx)))]
