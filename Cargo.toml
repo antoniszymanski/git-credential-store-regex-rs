@@ -18,10 +18,8 @@ serde_with = "3.18.0"
 snafu = "0.9.0"
 
 [build-dependencies]
-carapace_spec_clap = "1.2.3"
 clap = { version = "4.6.0", features = ["derive"] }
-clap_complete = "4.6.9"
-clap_complete_nushell = "4.6.2"
+clap_complete_command = { version = "0.6.1", features = ["carapace", "nushell"] }
 clap_mangen = "0.3.3"
 remove_dir_all = "1.0.0"
 
